@@ -1,0 +1,3 @@
+cd feed-jessy
+npx vercel          # first run: opens a browser login, then just accept the defaults
+npx vercel --prod   # promotes to production, prints your https://<project>.vercel.app URL
