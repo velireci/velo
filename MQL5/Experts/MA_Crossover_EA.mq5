@@ -8,7 +8,8 @@
 //|    average we buy, and when it crosses BELOW we sell.            |
 //|                                                                  |
 //|  House rules:                                                    |
-//|    - Only one position may be open at any time.                  |
+//|    - Only one position may be open at any time, and any open     |
+//|      position on the symbol counts, whoever opened it.           |
 //|    - Every trade gets a fixed stop loss and take profit.         |
 //|    - Signals are only read from bars that have already CLOSED,   |
 //|      so a signal never changes its mind halfway through a bar.   |
@@ -114,7 +115,8 @@ void OnTick()
    if(!IsNewBar())
       return;
 
-   // House rule: never hold more than one position at a time.
+   // House rule: never trade while anything is already open on this
+   // symbol, no matter whether this EA, another EA or you opened it.
    if(HasOpenPosition())
       return;
 
@@ -152,9 +154,9 @@ bool IsNewBar()
 }
 
 //+------------------------------------------------------------------+
-//| HasOpenPosition: true if this EA already has a position open     |
-//| on this symbol. Positions opened by hand or by another EA are    |
-//| ignored, because they carry a different magic number.            |
+//| HasOpenPosition: true if ANY position is open on this symbol.    |
+//| It does not matter who opened it: this EA, another EA, or you    |
+//| by hand. While anything is open on this symbol, the EA waits.    |
 //+------------------------------------------------------------------+
 bool HasOpenPosition()
 {
@@ -162,10 +164,9 @@ bool HasOpenPosition()
    {
       ulong ticket = PositionGetTicket(i);
       if(ticket == 0)
-         continue;
+         continue;   // the position list changed while we were reading it
 
-      if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
-         PositionGetInteger(POSITION_MAGIC) == InpMagic)
+      if(PositionGetString(POSITION_SYMBOL) == _Symbol)
          return(true);
    }
 
