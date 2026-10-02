@@ -8,8 +8,8 @@
 //|    average we buy, and when it crosses BELOW we sell.            |
 //|                                                                  |
 //|  House rules:                                                    |
-//|    - Only one position may be open at any time, and any open     |
-//|      position on the symbol counts, whoever opened it.           |
+//|    - Only one trade at a time: any open position or waiting      |
+//|      pending order on the symbol counts, whoever placed it.      |
 //|    - Every trade gets a fixed stop loss and take profit.         |
 //|    - Signals are only read from bars that have already CLOSED,   |
 //|      so a signal never changes its mind halfway through a bar.   |
@@ -115,9 +115,11 @@ void OnTick()
    if(!IsNewBar())
       return;
 
-   // House rule: never trade while anything is already open on this
-   // symbol, no matter whether this EA, another EA or you opened it.
-   if(HasOpenPosition())
+   // House rule: never trade while anything is already working on this
+   // symbol, no matter whether this EA, another EA or you set it up.
+   // That means an open position AND a waiting (pending) order both
+   // keep the EA on the sidelines.
+   if(HasOpenPosition() || HasPendingOrder())
       return;
 
    double fastPrev = 0.0, fastOlder = 0.0;   // fast MA on bar 1 and bar 2
@@ -167,6 +169,27 @@ bool HasOpenPosition()
          continue;   // the position list changed while we were reading it
 
       if(PositionGetString(POSITION_SYMBOL) == _Symbol)
+         return(true);
+   }
+
+   return(false);
+}
+
+//+------------------------------------------------------------------+
+//| HasPendingOrder: true if ANY order is waiting on this symbol,    |
+//| for example a buy stop or a sell limit that has not triggered    |
+//| yet. Such an order may turn into a position at any moment, so we |
+//| treat it the same as one that is already open.                   |
+//+------------------------------------------------------------------+
+bool HasPendingOrder()
+{
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = OrderGetTicket(i);
+      if(ticket == 0)
+         continue;   // the order list changed while we were reading it
+
+      if(OrderGetString(ORDER_SYMBOL) == _Symbol)
          return(true);
    }
 
